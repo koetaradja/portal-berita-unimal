@@ -78,7 +78,7 @@ export default function Header({ primaryColor = "#1B6B3A", accentColor = "#E8A02
                       <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{user.email}</div>
                     </div>
                     <span className="user-dropdown-item" onClick={() => { navigate('/editor'); setUserMenuOpen(false) }}>✏ Tulis Berita Baru</span>
-                    <span className="user-dropdown-item" style={{ color: "#888" }}>📄 Artikel Saya</span>
+                    <span className="user-dropdown-item" onClick={() => { navigate('/dashboard'); setUserMenuOpen(false) }}>📄 Artikel Saya</span>
                     <div style={{ borderTop: "1px solid #EBEBEB", marginTop: 4, paddingTop: 4 }}>
                       <span className="user-dropdown-item" style={{ color: "#C44" }} onClick={() => { signOut(); setUserMenuOpen(false) }}>↩ Keluar</span>
                     </div>

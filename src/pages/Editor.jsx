@@ -279,7 +279,8 @@ export default function Editor() {
         console.log("Improved Title:", res.improved_title)
       }
     } catch (err) {
-      alert("Gagal menghubungi Gemini AI. Pastikan API Key valid.")
+      console.error(err);
+      alert("Gagal menghubungi Gemini AI: " + err.message)
     } finally {
       setGeminiLoading(false)
     }

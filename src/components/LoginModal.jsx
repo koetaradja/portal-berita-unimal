@@ -2,21 +2,32 @@ import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 
 export default function LoginModal({ onClose, primaryColor = "#1B6B3A" }) {
+  const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [fullName, setFullName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const { signIn } = useAuth()
+  const [success, setSuccess] = useState('')
+  const { signIn, signUp } = useAuth()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!email.trim() || !password.trim()) { setError('Email dan kata sandi wajib diisi.'); return }
-    setLoading(true); setError('')
+    if (isSignUp && !fullName.trim()) { setError('Nama lengkap wajib diisi.'); return }
+    
+    setLoading(true); setError(''); setSuccess('')
     try {
-      await signIn(email, password)
-      onClose()
+      if (isSignUp) {
+        await signUp(email, password, fullName)
+        setSuccess('Akun berhasil dibuat! Anda sekarang bisa login.')
+        setIsSignUp(false) // Switch to login view
+      } else {
+        await signIn(email, password)
+        onClose()
+      }
     } catch (err) {
-      setError(err.message || 'Login gagal. Periksa email dan password Anda.')
+      setError(err.message || (isSignUp ? 'Gagal mendaftar.' : 'Login gagal. Periksa email dan password Anda.'))
     } finally {
       setLoading(false)
     }
@@ -29,10 +40,23 @@ export default function LoginModal({ onClose, primaryColor = "#1B6B3A" }) {
         <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: "pointer", fontSize: 22, color: "#999", lineHeight: 1 }}>×</button>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <img src="/Logo-Unimal-Aceh_Utara.png" alt="Unimal" style={{ height: 52, marginBottom: 14 }} />
-          <h2 style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 22, color: "#1A1A1A" }}>Masuk ke Portal Ilkom</h2>
-          <p style={{ fontSize: 13, color: "#888", marginTop: 6 }}>Login menggunakan akun mahasiswa Unimal</p>
+          <h2 style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 22, color: "#1A1A1A" }}>
+            {isSignUp ? "Daftar Akun Baru" : "Masuk ke Portal Ilkom"}
+          </h2>
+          <p style={{ fontSize: 13, color: "#888", marginTop: 6 }}>
+            {isSignUp ? "Daftar dengan email mahasiswa Unimal" : "Login menggunakan akun mahasiswa Unimal"}
+          </p>
         </div>
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {isSignUp && (
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#888", display: "block", marginBottom: 6 }}>Nama Lengkap</label>
+              <input type="text" value={fullName} onChange={e => setFullName(e.target.value)}
+                placeholder="Misal: Budi Santoso"
+                style={{ width: "100%", border: "1px solid #E2E2E2", padding: "10px 14px", fontSize: 14, outline: "none", fontFamily: "'Source Sans 3',sans-serif", transition: "border-color 0.15s", borderRadius: 0 }}
+                onFocus={e => e.target.style.borderColor = primaryColor} onBlur={e => e.target.style.borderColor = "#E2E2E2"} />
+            </div>
+          )}
           <div>
             <label style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#888", display: "block", marginBottom: 6 }}>Email</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)}
@@ -47,15 +71,20 @@ export default function LoginModal({ onClose, primaryColor = "#1B6B3A" }) {
               style={{ width: "100%", border: "1px solid #E2E2E2", padding: "10px 14px", fontSize: 14, outline: "none", fontFamily: "'Source Sans 3',sans-serif", borderRadius: 0 }}
               onFocus={e => e.target.style.borderColor = primaryColor} onBlur={e => e.target.style.borderColor = "#E2E2E2"} />
           </div>
+          
           {error && <p style={{ fontSize: 13, color: "#D44", background: "#FEF0F0", padding: "8px 12px" }}>{error}</p>}
+          {success && <p style={{ fontSize: 13, color: "#1B6B3A", background: "#F0FAF4", padding: "8px 12px" }}>{success}</p>}
+          
           <button type="submit" disabled={loading}
             style={{ background: loading ? "#aaa" : primaryColor, color: "#fff", border: "none", padding: "12px 20px", fontWeight: 700, fontSize: 15, cursor: loading ? "not-allowed" : "pointer", fontFamily: "'Source Sans 3',sans-serif", letterSpacing: "0.03em", transition: "opacity 0.15s", marginTop: 4 }}>
-            {loading ? "Memverifikasi…" : "Masuk"}
+            {loading ? "Memproses…" : (isSignUp ? "Daftar Sekarang" : "Masuk")}
           </button>
-          <p style={{ fontSize: 12, textAlign: "center", color: "#AAA" }}>
-            <a href="#" style={{ color: "#888", textDecoration: "none" }}>Lupa kata sandi?</a>
-            &nbsp;·&nbsp;
-            <a href="#" style={{ color: primaryColor, textDecoration: "none", fontWeight: 600 }}>Hubungi admin prodi</a>
+          
+          <p style={{ fontSize: 13, textAlign: "center", color: "#AAA", marginTop: 10 }}>
+            {isSignUp ? "Sudah punya akun? " : "Belum punya akun? "}
+            <span onClick={() => { setIsSignUp(!isSignUp); setError(''); setSuccess(''); }} style={{ color: primaryColor, textDecoration: "none", fontWeight: 700, cursor: "pointer" }}>
+              {isSignUp ? "Login di sini" : "Daftar di sini"}
+            </span>
           </p>
         </form>
       </div>

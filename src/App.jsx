@@ -5,6 +5,7 @@ import CategoryPage from './pages/CategoryPage'
 import Editor from './pages/Editor'
 import TentangPage from './pages/TentangPage'
 import SyaratKetentuan from './pages/SyaratKetentuan'
+import Dashboard from './pages/Dashboard'
 import './App.css'
 
 export default function App() {
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/editor" element={<Editor />} />
           <Route path="/tentang" element={<TentangPage />} />
           <Route path="/syarat-ketentuan" element={<SyaratKetentuan />} />
+          <Route path="/dashboard" element={<Dashboard />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
