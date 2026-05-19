@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Source Sans 3', sans-serif;
+  color: #333;
+  line-height: 1.5;
+  background-color: #fff;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Animations */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn 0.4s ease-out forwards; }
+
+@keyframes tickerMove {
+  0% { transform: translateY(100%); opacity: 0; }
+  10% { transform: translateY(0); opacity: 1; }
+  90% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-100%); opacity: 0; }
+}
+.ticker-animate {
+  display: inline-block;
+  animation: tickerMove 9s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+
+@keyframes modalEnter {
+  from { opacity: 0; transform: scale(0.96) translateY(12px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-enter { animation: modalEnter 0.3s cubic-bezier(0.17, 0.89, 0.32, 1.1) forwards; }
+
+.modal-in {
+  animation: modalEnter 0.25s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+
+/* UI Elements Hover Effects */
+.card-hover { transition: transform 0.2s ease, opacity 0.2s ease; }
+.card-hover:hover { transform: translateY(-3px); }
+.card-hover:active { transform: translateY(0) scale(0.98); opacity: 0.9; }
+
+.article-headline-hover { transition: color 0.15s ease; }
+.card-hover:hover .article-headline-hover, article:hover .article-headline-hover { color: #1B6B3A !important; }
+
+/* Navigation */
+.nav-item {
+  color: rgba(255,255,255,0.8);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 14px 22px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.nav-item:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+/* User Menu */
+.user-menu { position: relative; }
+.user-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: #fff;
+  border: 1px solid #EBEBEB;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  min-width: 200px;
+  border-radius: 4px;
+  overflow: hidden;
+  animation: fadeIn 0.15s ease-out;
+}
+.user-dropdown-item {
+  display: block;
+  padding: 12px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #444;
+  cursor: pointer;
+  text-decoration: none;
+}
+.user-dropdown-item:hover { background: #F8F9FA; color: #1A1A1A; }
+
+/* Editor Specifics */
+.editor-body:empty:before {
+  content: attr(data-placeholder);
+  color: #CCC;
+  font-style: italic;
+  pointer-events: none;
+}
+.toolbar-btn:hover { background: #E5E5E5 !important; }
+.toolbar-btn:disabled { opacity: 0.3; cursor: not-allowed !important; }
+
+/* Placeholder SVG lines */
+.img-placeholder svg line { transition: stroke 0.3s; }
+article:hover .img-placeholder svg line { stroke: #D8D8D6; }
+
+/* Responsiveness */
+@media (max-width: 900px) {
+  .main-two-col { grid-template-columns: 1fr !important; }
+  .three-col { grid-template-columns: repeat(2, 1fr) !important; }
+  .footer-cols { grid-template-columns: 1fr 1fr !important; }
+}
+
+@media (max-width: 600px) {
+  .three-col { grid-template-columns: 1fr !important; }
+  .footer-cols { grid-template-columns: 1fr !important; }
+  .hero-right { display: none !important; }
+  .large-card-grid { grid-template-columns: 1fr !important; }
+}
