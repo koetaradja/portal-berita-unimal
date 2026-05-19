@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { ARTICLES, EVENTS, BREAKING_NEWS } from '../data/constants'
+import { useState, useEffect } from 'react'
+import { ARTICLES, EVENTS, BREAKING_NEWS, CATEGORIES } from '../data/constants'
+import { supabase } from '../lib/supabase'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import BreakingTicker from '../components/BreakingTicker'
@@ -41,34 +42,45 @@ function CategoryBlock({ title, slug, articles, onArticleClick, onViewAll }) {
   )
 }
 
-function HeroSection({ onArticleClick }) {
-  const hero = ARTICLES.find(a => a.section === "hero")
-  const secondary = ARTICLES.filter(a => a.section === "secondary")
-  const gridItems = [secondary[2], ...ARTICLES.filter(a => !["hero", "secondary"].includes(a.section)).slice(0, 2)].filter(Boolean)
+function HeroSection({ articles, onArticleClick }) {
+  const hero = articles[0]
+  const secondary = articles.slice(1, 3)
+  const gridItems = articles.slice(3, 6)
+  
+  if (!hero) return null;
+
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 3, background: "#111" }}>
         <div onClick={() => onArticleClick(hero)} style={{ position: "relative", cursor: "pointer", overflow: "hidden", minHeight: 420 }}>
-          <ImagePlaceholder desc={hero.imageDesc} aspect="54%" />
+          {hero.coverUrl ? (
+            <img src={hero.coverUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
+          ) : (
+            <ImagePlaceholder desc={hero.imageDesc || hero.title} aspect="54%" />
+          )}
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(8,28,16,0.96) 0%, rgba(8,28,16,0.5) 52%, rgba(0,0,0,0.04) 100%)" }}></div>
           <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "32px 40px", zIndex: 2 }}>
             <CategoryBadge label={hero.category} slug={hero.categorySlug} size="lg" />
             <h1 style={{ fontFamily: "'Playfair Display',serif", fontWeight: 900, fontSize: "clamp(24px,3.2vw,42px)", lineHeight: 1.18, color: "#fff", marginTop: 13, textShadow: "0 2px 14px rgba(0,0,0,0.45)" }}>{hero.title}</h1>
-            <p style={{ marginTop: 13, fontSize: "16px", color: "rgba(255,255,255,0.82)", lineHeight: 1.65, maxWidth: 540 }}>{hero.excerpt}</p>
+            <p style={{ marginTop: 13, fontSize: "16px", color: "rgba(255,255,255,0.82)", lineHeight: 1.65, maxWidth: 540, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{hero.excerpt}</p>
             <div style={{ marginTop: 16, fontSize: "13px", color: "rgba(255,255,255,0.55)", display: "flex", gap: 10, alignItems: "center" }}>
               <span style={{ fontWeight: 600, color: "rgba(255,255,255,0.75)" }}>{hero.author}</span>
-              <span>·</span><span>{hero.date}</span><span>·</span><span>{hero.readTime} baca</span>
+              <span>·</span><span>{hero.date}</span><span>·</span><span>{hero.readTime || '3 mnt'} baca</span>
             </div>
           </div>
         </div>
         <div className="hero-right" style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          {secondary.slice(0, 2).map(art => (
+          {secondary.map(art => (
             <div key={art.id} onClick={() => onArticleClick(art)} style={{ flex: 1, position: "relative", overflow: "hidden", cursor: "pointer", minHeight: 160 }}>
-              <ImagePlaceholder desc={art.imageDesc} aspect="100%" />
+              {art.coverUrl ? (
+                <img src={art.coverUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
+              ) : (
+                <ImagePlaceholder desc={art.imageDesc || art.title} aspect="100%" />
+              )}
               <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(8,28,16,0.92) 0%, rgba(0,0,0,0.18) 65%)" }}></div>
               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "16px 22px" }}>
                 <CategoryBadge label={art.category} slug={art.categorySlug} />
-                <h3 style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: "15px", lineHeight: 1.32, color: "#fff", marginTop: 8 }}>{art.title}</h3>
+                <h3 style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: "15px", lineHeight: 1.32, color: "#fff", marginTop: 8, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{art.title}</h3>
                 <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.55)", marginTop: 5 }}>{art.date}</p>
               </div>
             </div>
@@ -87,7 +99,46 @@ function HeroSection({ onArticleClick }) {
 export default function Home() {
   const [selectedArticle, setSelectedArticle] = useState(null)
   const [showLogin, setShowLogin] = useState(false)
-  const sectionArticles = slug => ARTICLES.filter(a => a.section === slug)
+  const [allArticles, setAllArticles] = useState(ARTICLES) // default to static data
+
+  useEffect(() => {
+    async function fetchDynamicArticles() {
+      try {
+        const { data, error } = await supabase
+          .from('articles')
+          .select('*')
+          .eq('status', 'published')
+          .order('created_at', { ascending: false })
+        
+        if (error) throw error
+        
+        if (data && data.length > 0) {
+          const dynamicFormatted = data.map(a => ({
+            id: a.id,
+            title: a.title,
+            excerpt: a.subtitle || '',
+            body: a.body, // full HTML content
+            category: CATEGORIES.find(c => c.slug === a.category)?.label || a.category,
+            categorySlug: a.category,
+            author: a.author_name || 'Mahasiswa Ilkom',
+            date: new Date(a.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+            readTime: '3 mnt',
+            coverUrl: a.cover_url,
+            imageDesc: a.title,
+            section: 'dynamic'
+          }))
+          
+          // Merge dynamic articles with static ones
+          setAllArticles([...dynamicFormatted, ...ARTICLES])
+        }
+      } catch (err) {
+        console.error("Failed to fetch articles:", err)
+      }
+    }
+    fetchDynamicArticles()
+  }, [])
+
+  const sectionArticles = slug => allArticles.filter(a => a.categorySlug === slug)
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
@@ -95,7 +146,7 @@ export default function Home() {
       <Header primaryColor={P} accentColor={A} onLoginClick={() => setShowLogin(true)} />
       <main style={{ flex: 1 }}>
         <div className="fade-in">
-          <HeroSection onArticleClick={setSelectedArticle} />
+          <HeroSection articles={allArticles} onArticleClick={setSelectedArticle} />
           <div style={{ maxWidth: 1280, margin: "52px auto 0", padding: "0 28px", display: "grid", gridTemplateColumns: "1fr 310px", gap: 52 }} className="main-two-col">
             <div>
               <CategoryBlock title="Politik" slug="politik" articles={sectionArticles("politik")} onArticleClick={setSelectedArticle} onViewAll={() => window.location.href = '/kategori/politik'} />
@@ -105,7 +156,7 @@ export default function Home() {
             </div>
             <aside>
               <SidebarEvents events={EVENTS} />
-              <SidebarPopular articles={ARTICLES.slice(0, 5)} onClick={setSelectedArticle} />
+              <SidebarPopular articles={allArticles.slice(0, 5)} onClick={setSelectedArticle} />
             </aside>
           </div>
         </div>

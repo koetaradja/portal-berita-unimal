@@ -17,12 +17,21 @@ export default function ArticleModal({ article, onClose }) {
             <span>·</span><span>{article.readTime} membaca</span>
           </div>
           <p style={{ marginTop: 22, fontSize: "17px", color: "#1A1A1A", lineHeight: 1.75 }}>{article.excerpt}</p>
-          <p style={{ marginTop: 18, fontSize: "17px", color: "#333", lineHeight: 1.75 }}>
-            Universitas Malikussaleh terus berkomitmen untuk meningkatkan standar akademik di Prodi Ilmu Komunikasi. Program ini telah menghasilkan ratusan lulusan yang kini berkarier di berbagai bidang media, hubungan masyarakat, dan komunikasi korporat di seluruh Indonesia.
-          </p>
-          <p style={{ marginTop: 18, fontSize: "17px", color: "#333", lineHeight: 1.75 }}>
-            Dengan fasilitas laboratorium multimedia modern, studio radio, dan studio produksi video, mahasiswa mendapatkan pengalaman praktis yang tak ternilai sebelum memasuki dunia kerja yang kompetitif.
-          </p>
+          {article.body ? (
+            <div 
+              style={{ marginTop: 18, fontSize: "17px", color: "#333", lineHeight: 1.75, wordBreak: 'break-word' }}
+              dangerouslySetInnerHTML={{ __html: article.body }}
+            />
+          ) : (
+            <>
+              <p style={{ marginTop: 18, fontSize: "17px", color: "#333", lineHeight: 1.75 }}>
+                Universitas Malikussaleh terus berkomitmen untuk meningkatkan standar akademik di Prodi Ilmu Komunikasi. Program ini telah menghasilkan ratusan lulusan yang kini berkarier di berbagai bidang media, hubungan masyarakat, dan komunikasi korporat di seluruh Indonesia.
+              </p>
+              <p style={{ marginTop: 18, fontSize: "17px", color: "#333", lineHeight: 1.75 }}>
+                Dengan fasilitas laboratorium multimedia modern, studio radio, dan studio produksi video, mahasiswa mendapatkan pengalaman praktis yang tak ternilai sebelum memasuki dunia kerja yang kompetitif.
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

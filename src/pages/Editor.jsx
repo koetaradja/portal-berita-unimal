@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { CATEGORIES, TERMS } from '../data/constants'
 import { useAuth } from '../hooks/useAuth'
 import { checkArticleWithGemini } from '../lib/gemini'
+import { supabase } from '../lib/supabase'
 
 // --- Check Modal ---
 function CheckModal({ issues, onBack, onContinue, score, summary, loading, onCheckGemini }) {
@@ -112,9 +113,9 @@ function SuccessOverlay({ title, category, author, onHome, onNew }) {
       <div style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', padding: '18px 28px', maxWidth: 560, marginBottom: 28, textAlign: 'left' }}>
         <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: cat.color === '#1B6B3A' ? '#90EEB8' : '#FFD770', marginBottom: 8 }}>{cat.label}</div>
         <div style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 20, color: '#fff', marginBottom: 8, lineHeight: 1.3 }}>{title || 'Artikel baru'}</div>
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,.6)' }}>Oleh {author || 'Penulis'} · Dalam antrian editorial</div>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,.6)' }}>Oleh {author || 'Penulis'} · Sudah tayang</div>
       </div>
-      <p style={{ fontSize: 15, color: 'rgba(255,255,255,.75)', marginBottom: 32 }}>Artikel sedang dalam proses review editor. Akan tampil di portal dalam 1×24 jam.</p>
+      <p style={{ fontSize: 15, color: 'rgba(255,255,255,.75)', marginBottom: 32 }}>Artikel Anda telah otomatis disetujui dan kini bisa langsung dibaca oleh publik.</p>
       <div style={{ display: 'flex', gap: 16 }}>
         <button onClick={onHome} style={{ background: '#E8A020', color: '#fff', border: 'none', padding: '13px 36px', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>← Beranda</button>
         <button onClick={onNew} style={{ background: 'rgba(255,255,255,.15)', color: '#fff', border: '2px solid rgba(255,255,255,.35)', padding: '13px 36px', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>Tulis Artikel Baru</button>
@@ -151,6 +152,8 @@ export default function Editor() {
   const [geminiScore, setGeminiScore] = useState(null)
   const [geminiSummary, setGeminiSummary] = useState('')
   const [geminiLoading, setGeminiLoading] = useState(false)
+  
+  const [isPublishing, setIsPublishing] = useState(false)
 
   const bodyRef = useRef(null)
   const coverFileRef = useRef(null)
@@ -256,9 +259,53 @@ export default function Editor() {
   }
 
   const handlePublishClick = () => {
+    if (!user) { alert("Anda harus login untuk menerbitkan artikel."); return }
     const issues = runBasicChecks()
     setCheckIssues(issues)
     setPublishStep('check')
+  }
+
+  const handlePublishToDB = async () => {
+    setIsPublishing(true)
+    try {
+      let finalCoverUrl = coverUrl
+      // Jika coverUrl adalah Base64 (foto baru di-upload), upload ke Supabase Storage
+      if (hasCover && coverUrl && coverUrl.startsWith('data:')) {
+         const res = await fetch(coverUrl)
+         const blob = await res.blob()
+         const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`
+         const { error: uploadErr } = await supabase.storage.from('article-images').upload(filename, blob)
+         if (!uploadErr) {
+            const { data } = supabase.storage.from('article-images').getPublicUrl(filename)
+            finalCoverUrl = data.publicUrl
+         }
+      }
+
+      const articleData = {
+        title,
+        subtitle,
+        body: bodyRef.current?.innerHTML || '',
+        category,
+        author_id: user.id,
+        author_name: authorName,
+        author_nim: authorNim,
+        tags,
+        cover_url: finalCoverUrl,
+        is_featured: isFeatured,
+        status: 'published', // Langsung publish!
+        published_at: new Date().toISOString()
+      }
+      
+      const { error } = await supabase.from('articles').insert([articleData])
+      if (error) throw error
+      
+      localStorage.removeItem('ilkom-editor-v2')
+      setPublishStep('success')
+    } catch (err) {
+      alert("Gagal menerbitkan ke database: " + err.message)
+    } finally {
+      setIsPublishing(false)
+    }
   }
 
   const handleGeminiCheck = async () => {
@@ -435,7 +482,17 @@ export default function Editor() {
 
       {/* MODALS */}
       {publishStep === 'check' && <CheckModal issues={checkIssues} onBack={() => setPublishStep(null)} onContinue={() => setPublishStep('terms')} score={geminiScore} summary={geminiSummary} loading={geminiLoading} onCheckGemini={handleGeminiCheck} />}
-      {publishStep === 'terms' && <TermsModal onBack={() => setPublishStep('check')} onPublish={() => { saveDraft(); setPublishStep('success'); }} />}
+      {publishStep === 'terms' && (
+        <TermsModal 
+          onBack={() => setPublishStep('check')} 
+          onPublish={handlePublishToDB} 
+        />
+      )}
+      {isPublishing && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: '#1B6B3A' }}>Menerbitkan Artikel...</div>
+        </div>
+      )}
       {publishStep === 'success' && <SuccessOverlay title={title} category={category} author={authorName} onHome={() => navigate('/')} onNew={resetEditor} />}
     </div>
   )
